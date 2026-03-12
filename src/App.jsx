@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
-
 // ─── AJUSTE 1: q2 reemplazada por rentabilidad (ya no duplica liquidez)
 // ─── AJUSTE 2: pesos globales balanceados (tal/tec suben, fin baja)
 // ─── AJUSTE 3: hallazgos específicos por pregunta más baja, no genéricos
 // ─── AJUSTE 4: CTA personalizado por paquete
 // ─── AJUSTE 5: insight sectorial en resultado
+// ─── AJUSTE 6: captura de leads antes del resultado
+
+import { useState, useEffect } from "react";
 
 const PREGUNTAS = [
   {
@@ -26,7 +27,6 @@ const PREGUNTAS = [
       4: null,
     }
   },
-  // ── AJUSTE: q2 ahora mide rentabilidad, no cartera (era duplicado de liquidez)
   {
     id: "q2",
     numero: "02",
@@ -143,7 +143,6 @@ const PREGUNTAS = [
   },
 ];
 
-// ─── INSIGHTS SECTORIALES (AJUSTE 5) ─────────────────────────────────────────
 const INSIGHTS_SECTOR = {
   "Manufactura": {
     rescate:      "El 58% de MiPymes manufactureras en Latam entran en crisis por costos de producción descontrolados, no por falta de ventas.",
@@ -183,7 +182,6 @@ const INSIGHTS_SECTOR = {
   },
 };
 
-// ─── LÓGICA DE DIAGNÓSTICO ────────────────────────────────────────────────────
 function calcularDiagnostico(respuestas, sector) {
   const dims = { fin: 0, ops: 0, mkt: 0, tal: 0, tec: 0 };
   let crisisFlags = 0;
@@ -198,42 +196,36 @@ function calcularDiagnostico(respuestas, sector) {
       if (k === "crisis") { crisisFlags++; return; }
       dims[k] = (dims[k] || 0) + v;
     });
-    // Track peor respuesta para hallazgo específico
     if (op.valor < peorPreguntaScore) {
       peorPreguntaScore = op.valor;
       peorPreguntaIdx = i;
     }
   });
 
-  // Normalize dims 0-100 por máximo posible real de cada dim
   const maxPosible = { fin: 8, ops: 4, mkt: 8, tal: 4, tec: 4 };
   const scores = {};
   Object.keys(dims).forEach(k => {
     scores[k] = Math.round(Math.min(100, (dims[k] / (maxPosible[k] || 1)) * 100));
   });
 
-  // ─── AJUSTE 2: pesos balanceados (tal/tec aumentaron, fin bajó)
   const global = Math.round(
     scores.fin * 0.28 +
     scores.ops * 0.22 +
     scores.mkt * 0.22 +
-    scores.tal * 0.15 +   // era 0.10
-    scores.tec * 0.13     // era 0.10
+    scores.tal * 0.15 +
+    scores.tec * 0.13
   );
 
-  // Dimensión con score más bajo = dolor principal
   const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]);
   const dolorPrincipal = sorted[0][0];
   const dolorSecundario = sorted[1][0];
 
-  // Paquete
   let paquete;
   if (crisisFlags >= 2 || global <= 35) paquete = "rescate";
   else if (global <= 55) paquete = "estructura";
   else if (global <= 74) paquete = "escala";
   else paquete = "inteligencia";
 
-  // ─── AJUSTE 3: hallazgo específico desde la pregunta más baja respondida
   const peorPregunta = PREGUNTAS[peorPreguntaIdx];
   const respIdx = respuestas[peorPreguntaIdx];
   const valorRespuesta = peorPregunta.opciones[respIdx].valor;
@@ -242,12 +234,10 @@ function calcularDiagnostico(respuestas, sector) {
     peorPregunta.hallazgos[Math.max(0, valorRespuesta - 1)] ||
     "Tu empresa tiene oportunidades de mejora significativas en múltiples frentes.";
 
-  // Insight sectorial
   const insightSect = sector && INSIGHTS_SECTOR[sector]
     ? INSIGHTS_SECTOR[sector][paquete]
     : null;
 
-  // ─── AJUSTE 4: CTA personalizado por paquete
   const ctasPorPaquete = {
     rescate:      { titulo: "Necesito una sesión de emergencia", sub: "Sin costo. 45 minutos. Esta semana." },
     estructura:   { titulo: "Quiero ordenar mi empresa", sub: "Diagnóstico completo en 5 días hábiles." },
@@ -264,7 +254,6 @@ function calcularDiagnostico(respuestas, sector) {
   };
 }
 
-// ─── METADATA ────────────────────────────────────────────────────────────────
 const DIM_META = {
   fin: { label: "Financiero",  icon: "◆", color: "#2563EB" },
   ops: { label: "Operaciones", icon: "⚙", color: "#0D9488" },
@@ -300,7 +289,6 @@ const PAQUETE_INFO = {
   },
 };
 
-// ─── UI COMPONENTS ────────────────────────────────────────────────────────────
 function ProgressDots({ total, current }) {
   return (
     <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
@@ -338,7 +326,140 @@ function RadarBar({ label, value, color, icon, delay = 0 }) {
   );
 }
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
+// ─── PANTALLA DE CAPTURA DE LEADS ─────────────────────────────────────────────
+function PantallaLead({ empresa, sector, onEnviar }) {
+  const [nombre, setNombre] = useState(empresa || "");
+  const [correo, setCorreo] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleEnviar = async () => {
+    if (!nombre.trim()) { setError("Escribe tu nombre para continuar."); return; }
+    if (!correo.trim() || !correo.includes("@")) { setError("Escribe un correo válido."); return; }
+    setError("");
+    setEnviando(true);
+
+    try {
+      // ── IMPORTANTE: Reemplaza el ID de Formspree con el tuyo ──
+      // Ve a formspree.io, crea una cuenta gratis y obtén tu endpoint
+      // Se ve así: https://formspree.io/f/XXXXXXXX
+      await fetch("https://formspree.io/f/XXXXXXXX", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre,
+          correo,
+          telefono,
+          empresa: empresa || nombre,
+          sector: sector || "No especificado",
+          fuente: "Diagnóstico Express",
+        }),
+      });
+    } catch (e) {
+      // Si Formspree falla, igual mostramos el resultado
+      // para no bloquear al usuario
+    }
+
+    setEnviando(false);
+    onEnviar({ nombre, correo, telefono });
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#FFFBF5", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "24px 16px", fontFamily: "Georgia, serif" }}>
+      <div style={{ maxWidth: 480, width: "100%" }}>
+
+        {/* Encabezado */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1B2A4A", margin: "0 0 10px" }}>
+            Tu diagnóstico está listo
+          </h2>
+          <p style={{ fontSize: 15, color: "#64748B", margin: 0, lineHeight: 1.6 }}>
+            ¿A dónde enviamos tu reporte?<br />
+            <span style={{ fontSize: 13, color: "#94A3B8" }}>Sin spam. Sin compromisos. Solo tu resultado.</span>
+          </p>
+        </div>
+
+        {/* Formulario */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0",
+          padding: "28px 24px", boxShadow: "0 4px 24px rgba(0,0,0,0.06)", marginBottom: 16 }}>
+
+          {/* Nombre */}
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2,
+            textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+            Tu nombre *
+          </label>
+          <input
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            placeholder="Ej. Ricardo Hernández"
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 8,
+              border: "1.5px solid #E2E8F0", fontSize: 15, fontFamily: "Georgia",
+              color: "#1E293B", background: "#FAFAFA", outline: "none",
+              boxSizing: "border-box", marginBottom: 18 }}
+          />
+
+          {/* Correo */}
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2,
+            textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+            Correo electrónico *
+          </label>
+          <input
+            value={correo}
+            onChange={e => setCorreo(e.target.value)}
+            placeholder="correo@tuempresa.com"
+            type="email"
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 8,
+              border: "1.5px solid #E2E8F0", fontSize: 15, fontFamily: "Georgia",
+              color: "#1E293B", background: "#FAFAFA", outline: "none",
+              boxSizing: "border-box", marginBottom: 18 }}
+          />
+
+          {/* Teléfono */}
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2,
+            textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+            WhatsApp (opcional — para agendar más rápido)
+          </label>
+          <input
+            value={telefono}
+            onChange={e => setTelefono(e.target.value)}
+            placeholder="55 1234 5678"
+            type="tel"
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 8,
+              border: "1.5px solid #E2E8F0", fontSize: 15, fontFamily: "Georgia",
+              color: "#1E293B", background: "#FAFAFA", outline: "none",
+              boxSizing: "border-box" }}
+          />
+
+          {/* Error */}
+          {error && (
+            <p style={{ color: "#DC2626", fontSize: 13, marginTop: 12, marginBottom: 0 }}>{error}</p>
+          )}
+        </div>
+
+        {/* Botón */}
+        <button
+          onClick={handleEnviar}
+          disabled={enviando}
+          style={{ width: "100%", padding: "16px", borderRadius: 12, border: "none",
+            background: enviando ? "#94A3B8" : "#1B2A4A", color: "#fff",
+            fontSize: 16, fontWeight: 700, cursor: enviando ? "not-allowed" : "pointer",
+            fontFamily: "Georgia", boxShadow: "0 4px 20px rgba(27,42,74,0.3)",
+            transition: "all 0.15s" }}>
+          {enviando ? "Enviando..." : "Ver mi diagnóstico →"}
+        </button>
+
+        <p style={{ fontSize: 11, color: "#CBD5E1", textAlign: "center", marginTop: 12 }}>
+          Tus datos no serán compartidos con terceros.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP PRINCIPAL ────────────────────────────────────────────────────────────
 export default function DiagnosticoExpress() {
   const [fase, setFase] = useState("intro");
   const [preguntaActual, setPreguntaActual] = useState(0);
@@ -347,8 +468,11 @@ export default function DiagnosticoExpress() {
   const [visible, setVisible] = useState(true);
   const [empresa, setEmpresa] = useState("");
   const [sector, setSector] = useState("");
+  const [leadCapturado, setLeadCapturado] = useState(false);
 
-  const resultado = fase === "resultado" ? calcularDiagnostico(respuestas, sector) : null;
+  const resultado = (fase === "resultado" && leadCapturado)
+    ? calcularDiagnostico(respuestas, sector)
+    : null;
   const paqueteInfo = resultado ? PAQUETE_INFO[resultado.paquete] : null;
 
   const avanzar = () => {
@@ -360,7 +484,7 @@ export default function DiagnosticoExpress() {
       setVisible(false);
       setTimeout(() => { setPreguntaActual(p => p + 1); setSeleccionada(null); setVisible(true); }, 220);
     } else {
-      setFase("resultado");
+      setFase("lead"); // ← Va a captura de lead antes del resultado
     }
   };
 
@@ -373,12 +497,19 @@ export default function DiagnosticoExpress() {
   const reiniciar = () => {
     setFase("intro"); setPreguntaActual(0);
     setRespuestas(Array(7).fill(null)); setSeleccionada(null);
-    setEmpresa(""); setSector("");
+    setEmpresa(""); setSector(""); setLeadCapturado(false);
+  };
+
+  const handleLeadEnviado = ({ nombre }) => {
+    if (!empresa && nombre) setEmpresa(nombre);
+    setLeadCapturado(true);
+    setFase("resultado");
   };
 
   // ── INTRO ──────────────────────────────────────────────────────────────────
   if (fase === "intro") return (
-    <div style={{ minHeight: "100vh", background: "#FFFBF5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px", fontFamily: "Georgia, serif" }}>
+    <div style={{ minHeight: "100vh", background: "#FFFBF5", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "24px 16px", fontFamily: "Georgia, serif" }}>
       <div style={{ maxWidth: 480, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 11, letterSpacing: 4, color: "#94A3B8", textTransform: "uppercase", marginBottom: 14 }}>Despacho de Consultoría MiPyme</div>
@@ -391,24 +522,31 @@ export default function DiagnosticoExpress() {
           </p>
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: "24px", marginBottom: 20, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: "24px",
+          marginBottom: 20, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2,
+            textTransform: "uppercase", display: "block", marginBottom: 8 }}>
             Nombre de tu empresa
           </label>
           <input value={empresa} onChange={e => setEmpresa(e.target.value)}
             placeholder="Ej. Distribuidora Central SA"
-            style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1.5px solid #E2E8F0", fontSize: 15,
-              fontFamily: "Georgia", color: "#1E293B", background: "#FAFAFA", outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 8,
+              border: "1.5px solid #E2E8F0", fontSize: 15, fontFamily: "Georgia",
+              color: "#1E293B", background: "#FAFAFA", outline: "none", boxSizing: "border-box" }} />
 
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 8, marginTop: 18 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: 2,
+            textTransform: "uppercase", display: "block", marginBottom: 8, marginTop: 18 }}>
             Sector (opcional — mejora la precisión del resultado)
           </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {["Manufactura","Retail","Consultoría","SaaS","Agroindustria","Turismo"].map(s => (
               <button key={s} onClick={() => setSector(prev => prev === s ? "" : s)}
-                style={{ padding: "10px 8px", borderRadius: 8, border: `1.5px solid ${sector === s ? "#2563EB" : "#E2E8F0"}`,
-                  background: sector === s ? "#EFF6FF" : "#FAFAFA", color: sector === s ? "#1D4ED8" : "#64748B",
-                  fontWeight: sector === s ? 700 : 400, fontSize: 13, cursor: "pointer", fontFamily: "Georgia", transition: "all 0.15s" }}>
+                style={{ padding: "10px 8px", borderRadius: 8,
+                  border: `1.5px solid ${sector === s ? "#2563EB" : "#E2E8F0"}`,
+                  background: sector === s ? "#EFF6FF" : "#FAFAFA",
+                  color: sector === s ? "#1D4ED8" : "#64748B",
+                  fontWeight: sector === s ? 700 : 400, fontSize: 13,
+                  cursor: "pointer", fontFamily: "Georgia", transition: "all 0.15s" }}>
                 {s}
               </button>
             ))}
@@ -416,14 +554,17 @@ export default function DiagnosticoExpress() {
         </div>
 
         <button onClick={() => setFase("preguntas")}
-          style={{ width: "100%", padding: "16px", borderRadius: 12, border: "none", background: "#1B2A4A",
-            color: "#fff", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "Georgia",
+          style={{ width: "100%", padding: "16px", borderRadius: 12, border: "none",
+            background: "#1B2A4A", color: "#fff", fontSize: 16, fontWeight: 700,
+            cursor: "pointer", fontFamily: "Georgia",
             boxShadow: "0 4px 20px rgba(27,42,74,0.3)", transition: "all 0.15s" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#2563EB"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(37,99,235,0.35)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#1B2A4A"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(27,42,74,0.3)"; }}>
+          onMouseEnter={e => { e.currentTarget.style.background = "#2563EB"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#1B2A4A"; }}>
           Comenzar diagnóstico →
         </button>
-        <p style={{ fontSize: 11, color: "#CBD5E1", textAlign: "center", marginTop: 14 }}>Sin registro · Sin correo · Resultado inmediato</p>
+        <p style={{ fontSize: 11, color: "#CBD5E1", textAlign: "center", marginTop: 14 }}>
+          Sin registro · Sin correo · Resultado inmediato
+        </p>
       </div>
     </div>
   );
@@ -432,35 +573,46 @@ export default function DiagnosticoExpress() {
   if (fase === "preguntas") {
     const p = PREGUNTAS[preguntaActual];
     return (
-      <div style={{ minHeight: "100vh", background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "Georgia, serif" }}>
-        <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
-          <button onClick={retroceder} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 14, fontFamily: "Georgia", padding: 0 }}>← atrás</button>
+      <div style={{ minHeight: "100vh", background: "#FFFBF5", display: "flex",
+        flexDirection: "column", fontFamily: "Georgia, serif" }}>
+        <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between",
+          alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
+          <button onClick={retroceder} style={{ background: "none", border: "none", color: "#94A3B8",
+            cursor: "pointer", fontSize: 14, fontFamily: "Georgia", padding: 0 }}>← atrás</button>
           <ProgressDots total={PREGUNTAS.length} current={preguntaActual} />
           <span style={{ fontSize: 12, color: "#94A3B8" }}>{preguntaActual + 1} / {PREGUNTAS.length}</span>
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px 24px 0",
-          maxWidth: 520, margin: "0 auto", width: "100%",
-          opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(10px)", transition: "all 0.22s ease" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center",
+          padding: "24px 24px 0", maxWidth: 520, margin: "0 auto", width: "100%",
+          opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(10px)",
+          transition: "all 0.22s ease" }}>
 
-          <div style={{ fontSize: 80, fontWeight: 800, color: "#F1F5F9", lineHeight: 1, marginBottom: -10, userSelect: "none" }}>{p.numero}</div>
-          <h2 style={{ fontSize: 21, fontWeight: 700, color: "#1B2A4A", margin: "0 0 8px", lineHeight: 1.4 }}>{p.pregunta}</h2>
-          <p style={{ fontSize: 14, color: "#94A3B8", margin: "0 0 26px", fontStyle: "italic", lineHeight: 1.5 }}>{p.subtexto}</p>
+          <div style={{ fontSize: 80, fontWeight: 800, color: "#F1F5F9", lineHeight: 1,
+            marginBottom: -10, userSelect: "none" }}>{p.numero}</div>
+          <h2 style={{ fontSize: 21, fontWeight: 700, color: "#1B2A4A", margin: "0 0 8px",
+            lineHeight: 1.4 }}>{p.pregunta}</h2>
+          <p style={{ fontSize: 14, color: "#94A3B8", margin: "0 0 26px", fontStyle: "italic",
+            lineHeight: 1.5 }}>{p.subtexto}</p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {p.opciones.map((op, idx) => (
               <button key={idx} onClick={() => setSeleccionada(idx)}
-                style={{ padding: "15px 18px", borderRadius: 12, border: `2px solid ${seleccionada === idx ? "#2563EB" : "#E2E8F0"}`,
+                style={{ padding: "15px 18px", borderRadius: 12,
+                  border: `2px solid ${seleccionada === idx ? "#2563EB" : "#E2E8F0"}`,
                   background: seleccionada === idx ? "#EFF6FF" : "#fff",
                   color: seleccionada === idx ? "#1E3A8A" : "#374151",
                   textAlign: "left", cursor: "pointer", fontSize: 14, fontFamily: "Georgia",
-                  fontWeight: seleccionada === idx ? 700 : 400, lineHeight: 1.45, transition: "all 0.15s",
+                  fontWeight: seleccionada === idx ? 700 : 400, lineHeight: 1.45,
+                  transition: "all 0.15s",
                   boxShadow: seleccionada === idx ? "0 0 0 4px rgba(37,99,235,0.1)" : "none",
                   display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${seleccionada === idx ? "#2563EB" : "#CBD5E1"}`,
+                <span style={{ width: 20, height: 20, borderRadius: "50%",
+                  border: `2px solid ${seleccionada === idx ? "#2563EB" : "#CBD5E1"}`,
                   background: seleccionada === idx ? "#2563EB" : "transparent",
                   flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {seleccionada === idx && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", display: "block" }} />}
+                  {seleccionada === idx && <span style={{ width: 7, height: 7, borderRadius: "50%",
+                    background: "#fff", display: "block" }} />}
                 </span>
                 {op.texto}
               </button>
@@ -468,12 +620,14 @@ export default function DiagnosticoExpress() {
           </div>
         </div>
 
-        <div style={{ padding: "20px 24px", maxWidth: 520, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+        <div style={{ padding: "20px 24px", maxWidth: 520, margin: "0 auto",
+          width: "100%", boxSizing: "border-box" }}>
           <button onClick={avanzar} disabled={seleccionada === null}
             style={{ width: "100%", padding: "16px", borderRadius: 12, border: "none",
               background: seleccionada !== null ? "#1B2A4A" : "#E2E8F0",
               color: seleccionada !== null ? "#fff" : "#94A3B8",
-              fontSize: 16, fontWeight: 700, cursor: seleccionada !== null ? "pointer" : "not-allowed",
+              fontSize: 16, fontWeight: 700,
+              cursor: seleccionada !== null ? "pointer" : "not-allowed",
               fontFamily: "Georgia", transition: "all 0.2s",
               boxShadow: seleccionada !== null ? "0 4px 16px rgba(27,42,74,0.25)" : "none" }}>
             {preguntaActual === PREGUNTAS.length - 1 ? "Ver mi diagnóstico →" : "Siguiente →"}
@@ -483,21 +637,28 @@ export default function DiagnosticoExpress() {
     );
   }
 
+  // ── CAPTURA DE LEAD ────────────────────────────────────────────────────────
+  if (fase === "lead") {
+    return <PantallaLead empresa={empresa} sector={sector} onEnviar={handleLeadEnviado} />;
+  }
+
   // ── RESULTADO ──────────────────────────────────────────────────────────────
   if (fase === "resultado" && resultado && paqueteInfo) {
-    const { scores, global, dolorPrincipal, dolorSecundario, hallazgo, paquete, crisisFlags, insightSect, cta } = resultado;
+    const { scores, global, dolorPrincipal, dolorSecundario, hallazgo, paquete, insightSect, cta } = resultado;
     const dimPpal = DIM_META[dolorPrincipal];
     const dimSec = DIM_META[dolorSecundario];
 
     return (
       <div style={{ minHeight: "100vh", background: "#FFFBF5", fontFamily: "Georgia, serif" }}>
 
-        {/* HEADER */}
         <div style={{ background: paqueteInfo.bg, padding: "32px 24px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 11, letterSpacing: 3, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, letterSpacing: 3, color: "rgba(255,255,255,0.45)",
+            textTransform: "uppercase", marginBottom: 12 }}>
             {empresa || "Tu empresa"}{sector ? ` · ${sector}` : ""}
           </div>
-          <span style={{ display: "inline-block", background: "rgba(255,255,255,0.18)", borderRadius: 20, padding: "4px 16px", fontSize: 10, fontWeight: 800, color: "#fff", letterSpacing: 3, textTransform: "uppercase", marginBottom: 18 }}>
+          <span style={{ display: "inline-block", background: "rgba(255,255,255,0.18)",
+            borderRadius: 20, padding: "4px 16px", fontSize: 10, fontWeight: 800,
+            color: "#fff", letterSpacing: 3, textTransform: "uppercase", marginBottom: 18 }}>
             {paqueteInfo.urgencia}
           </span>
           <div style={{ fontSize: 80, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{global}</div>
@@ -508,54 +669,61 @@ export default function DiagnosticoExpress() {
 
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
 
-          {/* DOLOR PRINCIPAL — AJUSTE 3: hallazgo específico */}
-          <div style={{ background: "#fff", borderRadius: 16, border: `2px solid ${dimPpal.color}25`, padding: "22px", marginBottom: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
-            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: dimPpal.color, fontWeight: 800, marginBottom: 10 }}>
+          <div style={{ background: "#fff", borderRadius: 16, border: `2px solid ${dimPpal.color}25`,
+            padding: "22px", marginBottom: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
+            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase",
+              color: dimPpal.color, fontWeight: 800, marginBottom: 10 }}>
               {dimPpal.icon} Dolor principal · {dimPpal.label}
             </div>
             <p style={{ fontSize: 15, color: "#1E293B", lineHeight: 1.7, margin: 0 }}>{hallazgo}</p>
             {scores[dolorSecundario] < 55 && (
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed #E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed #E2E8F0",
+                display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: "#94A3B8" }}>También en alerta:</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: dimSec.color }}>{dimSec.icon} {dimSec.label}</span>
-                <span style={{ fontSize: 11, background: "#FEF3C7", color: "#D97706", borderRadius: 10, padding: "1px 8px", fontWeight: 700 }}>{scores[dolorSecundario]}/100</span>
+                <span style={{ fontSize: 11, background: "#FEF3C7", color: "#D97706",
+                  borderRadius: 10, padding: "1px 8px", fontWeight: 700 }}>{scores[dolorSecundario]}/100</span>
               </div>
             )}
           </div>
 
-          {/* INSIGHT SECTORIAL — AJUSTE 5 */}
           {insightSect && (
-            <div style={{ background: "#F0FDF4", borderRadius: 12, border: "1px solid #BBF7D0", padding: "16px 18px", marginBottom: 16 }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#16A34A", fontWeight: 800, marginBottom: 8 }}>
+            <div style={{ background: "#F0FDF4", borderRadius: 12, border: "1px solid #BBF7D0",
+              padding: "16px 18px", marginBottom: 16 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
+                color: "#16A34A", fontWeight: 800, marginBottom: 8 }}>
                 💡 Dato de tu sector · {sector}
               </div>
               <p style={{ fontSize: 13, color: "#15803D", lineHeight: 1.6, margin: 0 }}>{insightSect}</p>
             </div>
           )}
 
-          {/* RADAR */}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: "22px", marginBottom: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#94A3B8", fontWeight: 700, marginBottom: 18 }}>Mapa de salud empresarial</div>
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0",
+            padding: "22px", marginBottom: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase",
+              color: "#94A3B8", fontWeight: 700, marginBottom: 18 }}>Mapa de salud empresarial</div>
             {Object.entries(DIM_META).map(([k, meta], i) => (
-              <RadarBar key={k} label={meta.label} value={scores[k]} color={meta.color} icon={meta.icon} delay={i * 100} />
+              <RadarBar key={k} label={meta.label} value={scores[k]}
+                color={meta.color} icon={meta.icon} delay={i * 100} />
             ))}
           </div>
 
-          {/* CTA PERSONALIZADO — AJUSTE 4 */}
           <div style={{ background: "#1B2A4A", borderRadius: 16, padding: "22px", marginBottom: 16 }}>
-            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#93C5FD", fontWeight: 700, marginBottom: 6 }}>El siguiente paso</div>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", margin: "0 0 18px", fontStyle: "italic" }}>{cta.sub}</p>
+            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase",
+              color: "#93C5FD", fontWeight: 700, marginBottom: 6 }}>El siguiente paso</div>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", margin: "0 0 18px",
+              fontStyle: "italic" }}>{cta.sub}</p>
             <button style={{ width: "100%", padding: "15px", borderRadius: 10, border: "none",
-              background: paqueteInfo.color === "#DC2626" ? "#DC2626" : paqueteInfo.color === "#D97706" ? "#D97706" : paqueteInfo.color === "#2563EB" ? "#2563EB" : "#0D9488",
-              color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Georgia",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
+              background: paqueteInfo.color, color: "#fff", fontSize: 15, fontWeight: 700,
+              cursor: "pointer", fontFamily: "Georgia", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
               {cta.titulo} →
             </button>
           </div>
 
-          {/* QUÉ INCLUYE */}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: "20px 22px", marginBottom: 16 }}>
-            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#94A3B8", fontWeight: 700, marginBottom: 14 }}>El diagnóstico completo incluye</div>
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0",
+            padding: "20px 22px", marginBottom: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase",
+              color: "#94A3B8", fontWeight: 700, marginBottom: 14 }}>El diagnóstico completo incluye</div>
             {[
               ["DQN", "35 KPIs medidos con tus datos reales", "#2563EB"],
               ["DQL", "49 factores organizacionales en entrevista de 90 min", "#7C3AED"],
@@ -563,7 +731,8 @@ export default function DiagnosticoExpress() {
               ["Plan", "Ruta de solución priorizada con paquete de servicios activado", "#1B2A4A"],
             ].map(([tag, desc, col]) => (
               <div key={tag} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 11 }}>
-                <span style={{ background: col, color: "#fff", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{tag}</span>
+                <span style={{ background: col, color: "#fff", borderRadius: 5, padding: "2px 8px",
+                  fontSize: 10, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>{tag}</span>
                 <span style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{desc}</span>
               </div>
             ))}
@@ -586,3 +755,4 @@ export default function DiagnosticoExpress() {
 
   return null;
 }
+
