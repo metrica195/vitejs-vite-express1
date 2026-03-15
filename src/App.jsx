@@ -144,41 +144,41 @@ const PREGUNTAS = [
 ];
 
 const INSIGHTS_SECTOR = {
-  "Manufactura": {
+  "Manufactura, Construcción e Industria": {
     rescate:      "El 58% de MiPymes manufactureras en Latam entran en crisis por costos de producción descontrolados, no por falta de ventas.",
-    estructura:   "Las manufactureras que implementan control de OEE en 90 días reducen desperdicio entre 12% y 18% en promedio.",
+    estructura:   "Las empresas industriales que implementan control de OEE en 90 días reducen desperdicio entre 12% y 18% en promedio.",
     escala:       "La brecha más común en manufactura MiPyme es el OEE: el sector opera en promedio al 52% cuando el benchmark saludable es 65%.",
-    inteligencia: "Las manufactureras que adoptan BI para control de inventario reducen capital inmovilizado hasta un 22%.",
+    inteligencia: "Las manufactureras que adoptan BI para control de inventario y obra reducen capital inmovilizado hasta un 22%.",
   },
-  "Retail": {
-    rescate:      "El 61% de los cierres de retail MiPyme en Latam ocurren por exceso de inventario inmovilizado, no por bajas ventas.",
+  "Comercio y Distribución": {
+    rescate:      "El 61% de los cierres de comercio MiPyme en Latam ocurren por exceso de inventario inmovilizado, no por bajas ventas.",
     estructura:   "Implementar un sistema ABC de inventario tarda menos de 30 días y reduce rupturas de stock hasta un 40%.",
-    escala:       "La rotación de inventario promedio en retail MiPyme Latam es 3.1x — el benchmark saludable para tu sector es 5x.",
-    inteligencia: "Los retailers que miden conversión por canal incrementan su ticket promedio entre 8% y 15% en el primer trimestre.",
+    escala:       "La rotación de inventario promedio en comercio MiPyme Latam es 3.1x — el benchmark saludable para tu sector es 5x.",
+    inteligencia: "Los comercios que miden conversión por canal y ticket promedio incrementan su margen entre 8% y 15% en el primer trimestre.",
   },
-  "Consultoría": {
-    rescate:      "En consultoría MiPyme, la cartera vencida mayor a 60 días es la causa #1 de crisis de liquidez — no la falta de proyectos.",
-    estructura:   "Las firmas consultoras que implementan pipeline tracking duplican su tasa de cierre en 6 meses.",
-    escala:       "La utilización billable promedio en consultoría MiPyme Latam es del 52% — hay casi 20 puntos de eficiencia sin explotar.",
+  "Servicios Profesionales y Tecnología": {
+    rescate:      "En servicios profesionales MiPyme, la cartera vencida mayor a 60 días es la causa #1 de crisis de liquidez — no la falta de clientes.",
+    estructura:   "Las firmas que implementan pipeline tracking y proceso de cobro estructurado duplican su tasa de cierre en 6 meses.",
+    escala:       "La utilización billable promedio en servicios profesionales MiPyme Latam es del 52% — hay casi 20 puntos de eficiencia sin explotar.",
     inteligencia: "Las firmas con NPS medido sistemáticamente retienen el 78% de sus clientes vs 54% de las que no lo miden.",
   },
-  "SaaS": {
-    rescate:      "Un churn mensual mayor al 7% significa que estás perdiendo tu base de clientes completa cada 14 meses.",
-    estructura:   "El 70% de los SaaS que escalan primero documentan su proceso de onboarding — eso sube la activación hasta un 35%.",
-    escala:       "El LTV/CAC promedio en SaaS MiPyme Latam es 1.8x — el benchmark saludable para escalar con capital es 3x.",
-    inteligencia: "Los SaaS que implementan NRR tracking identifican expansión revenue 3 meses antes de que se haga visible en ARR.",
+  "Alimentos, Restaurantes y Agroindustria": {
+    rescate:      "El costo de merma no controlada en restaurantes y agroindustria MiPyme representa en promedio entre el 8% y el 15% de las ventas brutas.",
+    estructura:   "Los restaurantes que implementan costeo por platillo y control de merma en 60 días mejoran su margen bruto entre 5 y 9 puntos porcentuales.",
+    escala:       "El food cost promedio en restaurantes MiPyme Latam opera al 38% cuando el benchmark saludable del sector es 28–32%.",
+    inteligencia: "Los negocios de alimentos que adoptan modelo de demanda predictiva reducen desperdicio de insumos perecederos hasta un 31%.",
   },
-  "Agroindustria": {
-    rescate:      "Las pérdidas post-cosecha no identificadas representan en promedio el 11% del costo total en agroindustria MiPyme.",
-    estructura:   "Implementar trazabilidad básica por lote reduce no conformidades de inocuidad hasta en un 60% en el primer ciclo.",
-    escala:       "La variabilidad del ciclo productivo en agro MiPyme Latam es 2.3x mayor a la de empresas con planificación formal.",
-    inteligencia: "Las agroindustriales con modelo predictivo de demanda reducen inventario de perecederos hasta un 28%.",
+  "Turismo, Salud y Bienestar": {
+    rescate:      "El 55% de los negocios de turismo y bienestar MiPyme en Latam operan con ocupación menor al 50% de su capacidad instalada.",
+    estructura:   "Implementar sistema de agendamiento + recordatorios automáticos reduce cancelaciones hasta un 40% en el primer mes.",
+    escala:       "La tasa de retención de clientes en salud y bienestar MiPyme Latam es del 42% — el benchmark saludable del sector es 65%.",
+    inteligencia: "Los negocios que miden NPS post-servicio y actúan sobre él mejoran su calificación en plataformas digitales 0.4 estrellas en promedio en 90 días.",
   },
-  "Turismo": {
-    rescate:      "El 55% de los hoteles boutique y hostales MiPyme en Latam operan con una dependencia de OTAs mayor al 70% — eso destruye margen.",
-    estructura:   "Migrar aunque sea el 20% de reservas al canal directo incrementa el margen por habitación entre 15% y 22%.",
-    escala:       "El RevPAR promedio en turismo MiPyme Latam está 31% por debajo del benchmark de establecimientos con gestión activa de revenue.",
-    inteligencia: "Los establecimientos que miden NPS post-estancia mejoran su ranking en plataformas digitales en promedio 0.4 estrellas en 90 días.",
+  "Educación y Capacitación": {
+    rescate:      "La deserción escolar no gestionada en centros educativos MiPyme representa una pérdida promedio del 22% de los ingresos anuales proyectados.",
+    estructura:   "Los centros que implementan seguimiento activo de alumnos en riesgo de deserción reducen la tasa de abandono hasta un 35% en un ciclo.",
+    escala:       "La tasa de renovación de matrícula promedio en educación MiPyme Latam es del 58% — el benchmark saludable es 75% o más.",
+    inteligencia: "Los centros educativos que miden NPS por grupo y por docente identifican problemas de retención 2 meses antes de que se reflejen en bajas.",
   },
 };
 
@@ -539,14 +539,15 @@ export default function DiagnosticoExpress() {
             Sector (opcional — mejora la precisión del resultado)
           </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {["Manufactura","Retail","Consultoría","SaaS","Agroindustria","Turismo"].map(s => (
+            {["Manufactura, Construcción e Industria","Comercio y Distribución","Servicios Profesionales y Tecnología","Alimentos, Restaurantes y Agroindustria","Turismo, Salud y Bienestar","Educación y Capacitación"].map(s => (
               <button key={s} onClick={() => setSector(prev => prev === s ? "" : s)}
                 style={{ padding: "10px 8px", borderRadius: 8,
                   border: `1.5px solid ${sector === s ? "#2563EB" : "#E2E8F0"}`,
                   background: sector === s ? "#EFF6FF" : "#FAFAFA",
                   color: sector === s ? "#1D4ED8" : "#64748B",
-                  fontWeight: sector === s ? 700 : 400, fontSize: 13,
-                  cursor: "pointer", fontFamily: "Georgia", transition: "all 0.15s" }}>
+                  fontWeight: sector === s ? 700 : 400, fontSize: 11,
+                  cursor: "pointer", fontFamily: "Georgia", transition: "all 0.15s",
+                  lineHeight: 1.3, textAlign: "center" }}>
                 {s}
               </button>
             ))}
@@ -755,4 +756,3 @@ export default function DiagnosticoExpress() {
 
   return null;
 }
-
